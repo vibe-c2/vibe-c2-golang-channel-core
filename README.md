@@ -1,18 +1,62 @@
 # vibe-c2-golang-channel-core
 
-Foundation package for building Vibe C2 channel modules in Go.
+Golang foundation SDK for building Vibe C2 channel modules.
 
-## Current status
+## v0 Architecture Summary
 
-Planning phase.
+The repository now includes a compileable v0 scaffold with the primary package boundaries:
 
-See:
-- `docs/FOUNDATION-PLAN.md`
+- `pkg/runtime`: channel runtime orchestrator and core interfaces
+- `pkg/profile`: profile model, YAML parsing helpers, semantic validation
+- `pkg/matcher`: hint-first profile selection stub
+- `pkg/syncclient`: HTTP sync client for C2 (`POST /api/channel/sync`)
+- `pkg/mgmtrpc`: management RPC server skeleton (CRUD/activate/validate TODOs)
+- `pkg/errors`: typed error codes and helpers
 
-## Intended outcome
+Core runtime interfaces:
 
-Enable community contributors to rapidly build custom channel modules with:
-- canonical channel<->C2 sync flow
-- obfuscation profile engine (YAML)
-- profile management RPC surface
-- production-oriented runtime patterns
+- `TransportEnvelope`: `GetField`, `SetField`, `SourceKey`
+- `SyncClient`: canonical sync contract
+- `ProfileStore`: list/get/put/delete profile persistence contract
+
+Runtime pipeline entrypoint:
+
+- `Handle(ctx, envelope, channelID) (protocol.OutboundAgentMessage, error)`
+- Performs basic canonical inbound/outbound validation around sync execution.
+
+## Quick Start
+
+### 1) Test the scaffold
+
+```bash
+go test ./...
+```
+
+### 2) Wire your channel adapter envelope
+
+Implement `runtime.TransportEnvelope` in your transport layer and populate:
+
+- `mapping.id`
+- `mapping.encrypted_data`
+- optional `mapping.profile_id`
+
+Then call:
+
+```go
+rt := runtime.New(mySyncClient)
+out, err := rt.Handle(ctx, envelope, channelID)
+```
+
+### 3) Parse and validate profiles
+
+```go
+p, err := profile.ParseYAML(data)
+if err != nil {
+    // invalid YAML or semantic profile error
+}
+```
+
+## Notes
+
+- This v0 scaffold includes a local module replacement for `github.com/vibe-c2/vibe-c2-golang-protocol` under `third_party/vibe-c2-golang-protocol` so it builds in restricted/offline environments.
+- See `docs/FOUNDATION-PLAN.md` for broader roadmap details.
