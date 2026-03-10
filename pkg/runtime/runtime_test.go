@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	coreerrors "github.com/vibe-c2/vibe-c2-golang-channel-core/pkg/errors"
-	protocol "github.com/vibe-c2/vibe-c2-golang-protocol"
+	protocol "github.com/vibe-c2/vibe-c2-golang-protocol/protocol"
 )
 
 type testEnvelope struct {
@@ -47,8 +47,11 @@ func TestRuntimeHandleSuccess(t *testing.T) {
 		"mapping.encrypted_data": "blob-in",
 	}}
 	sync := &testSyncClient{outbound: protocol.OutboundAgentMessage{
-		ChannelID:     "telegram",
-		ProfileID:     "alpha",
+		MessageID:     "m-2",
+		Type:          protocol.TypeOutboundAgentMessage,
+		Version:       protocol.VersionV1,
+		Timestamp:     "2026-03-10T15:00:00Z",
+		Source:        protocol.SourceInfo{Module: "core", ModuleInstance: "main", Transport: "channel", Tenant: "default"},
 		ID:            "msg-2",
 		EncryptedData: "blob-out",
 	}}
@@ -61,8 +64,8 @@ func TestRuntimeHandleSuccess(t *testing.T) {
 	if got.ID != "msg-2" {
 		t.Fatalf("unexpected outbound id: %s", got.ID)
 	}
-	if sync.captured.ChannelID != "telegram" {
-		t.Fatalf("unexpected inbound channel_id: %s", sync.captured.ChannelID)
+	if sync.captured.Type != protocol.TypeInboundAgentMessage {
+		t.Fatalf("unexpected inbound type: %s", sync.captured.Type)
 	}
 	if env.data["mapping.id"] != "msg-2" {
 		t.Fatalf("expected envelope mapping.id to be updated")
@@ -90,7 +93,11 @@ func TestRuntimeHandleInvalidOutbound(t *testing.T) {
 		"mapping.encrypted_data": "blob-in",
 	}}
 	sync := &testSyncClient{outbound: protocol.OutboundAgentMessage{
-		ChannelID: "http",
+		MessageID: "m-3",
+		Type:      protocol.TypeOutboundAgentMessage,
+		Version:   protocol.VersionV1,
+		Timestamp: "2026-03-10T15:00:00Z",
+		Source:    protocol.SourceInfo{Module: "core", ModuleInstance: "main", Transport: "channel", Tenant: "default"},
 		ID:        "msg-2",
 		// missing encrypted_data
 	}}

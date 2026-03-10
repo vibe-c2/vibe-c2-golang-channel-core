@@ -2,10 +2,12 @@ package runtime
 
 import (
 	"context"
+	"fmt"
 	"strings"
+	"time"
 
 	coreerrors "github.com/vibe-c2/vibe-c2-golang-channel-core/pkg/errors"
-	protocol "github.com/vibe-c2/vibe-c2-golang-protocol"
+	protocol "github.com/vibe-c2/vibe-c2-golang-protocol/protocol"
 )
 
 // Runtime orchestrates canonical message handling for channel adapters.
@@ -34,7 +36,7 @@ func (r *Runtime) Handle(ctx context.Context, envelope TransportEnvelope, channe
 	if err != nil {
 		return protocol.OutboundAgentMessage{}, err
 	}
-	if err := protocol.ValidateInboundAgentMessage(inbound); err != nil {
+	if err := protocol.ValidateInbound(inbound); err != nil {
 		return protocol.OutboundAgentMessage{}, coreerrors.Wrap(coreerrors.CodeCanonicalInvalid, "invalid inbound canonical message", err)
 	}
 
@@ -42,15 +44,12 @@ func (r *Runtime) Handle(ctx context.Context, envelope TransportEnvelope, channe
 	if err != nil {
 		return protocol.OutboundAgentMessage{}, err
 	}
-	if err := protocol.ValidateOutboundAgentMessage(outbound); err != nil {
+	if err := protocol.ValidateOutbound(outbound); err != nil {
 		return protocol.OutboundAgentMessage{}, coreerrors.Wrap(coreerrors.CodeCanonicalInvalid, "invalid outbound canonical message", err)
 	}
 
 	envelope.SetField("mapping", "id", outbound.ID)
 	envelope.SetField("mapping", "encrypted_data", outbound.EncryptedData)
-	if outbound.ProfileID != "" {
-		envelope.SetField("mapping", "profile_id", outbound.ProfileID)
-	}
 
 	return outbound, nil
 }
@@ -65,11 +64,17 @@ func inboundFromEnvelope(envelope TransportEnvelope, channelID string) (protocol
 		return protocol.InboundAgentMessage{}, err
 	}
 
-	profileID, _ := envelope.GetField("mapping", "profile_id")
-
 	return protocol.InboundAgentMessage{
-		ChannelID:     channelID,
-		ProfileID:     strings.TrimSpace(profileID),
+		MessageID: fmt.Sprintf("%s-%d", channelID, time.Now().UnixNano()),
+		Type:      protocol.TypeInboundAgentMessage,
+		Version:   protocol.VersionV1,
+		Timestamp: time.Now().UTC().Format(time.RFC3339),
+		Source: protocol.SourceInfo{
+			Module:         "channel-core",
+			ModuleInstance: channelID,
+			Transport:      "channel",
+			Tenant:         "default",
+		},
 		ID:            id,
 		EncryptedData: encryptedData,
 	}, nil

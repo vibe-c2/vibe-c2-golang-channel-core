@@ -58,5 +58,5 @@ if err != nil {
 
 ## Notes
 
-- This v0 scaffold includes a local module replacement for `github.com/vibe-c2/vibe-c2-golang-protocol` under `third_party/vibe-c2-golang-protocol` so it builds in restricted/offline environments.
+- Depends on released protocol module: `github.com/vibe-c2/vibe-c2-golang-protocol@v0.1.0`.
 - See `docs/FOUNDATION-PLAN.md` for broader roadmap details.

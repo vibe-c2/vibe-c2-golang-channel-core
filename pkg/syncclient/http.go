@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	coreerrors "github.com/vibe-c2/vibe-c2-golang-channel-core/pkg/errors"
-	protocol "github.com/vibe-c2/vibe-c2-golang-protocol"
+	protocol "github.com/vibe-c2/vibe-c2-golang-protocol/protocol"
 )
 
 const defaultSyncPath = "/api/channel/sync"
@@ -33,7 +33,7 @@ func (c *HTTPClient) Sync(ctx context.Context, in protocol.InboundAgentMessage) 
 	if strings.TrimSpace(c.BaseURL) == "" {
 		return protocol.OutboundAgentMessage{}, coreerrors.New(coreerrors.CodeInvalidInput, "sync base URL is required")
 	}
-	if err := protocol.ValidateInboundAgentMessage(in); err != nil {
+	if err := protocol.ValidateInbound(in); err != nil {
 		return protocol.OutboundAgentMessage{}, coreerrors.Wrap(coreerrors.CodeCanonicalInvalid, "invalid inbound canonical message", err)
 	}
 
@@ -77,7 +77,7 @@ func (c *HTTPClient) Sync(ctx context.Context, in protocol.InboundAgentMessage) 
 	if err := json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&out); err != nil {
 		return protocol.OutboundAgentMessage{}, coreerrors.Wrap(coreerrors.CodeSyncRejected, "decode sync response", err)
 	}
-	if err := protocol.ValidateOutboundAgentMessage(out); err != nil {
+	if err := protocol.ValidateOutbound(out); err != nil {
 		return protocol.OutboundAgentMessage{}, coreerrors.Wrap(coreerrors.CodeCanonicalInvalid, "invalid outbound canonical message", err)
 	}
 

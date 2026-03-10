@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/vibe-c2/vibe-c2-golang-channel-core/pkg/profile"
-	protocol "github.com/vibe-c2/vibe-c2-golang-protocol"
+	protocol "github.com/vibe-c2/vibe-c2-golang-protocol/protocol"
 )
 
 // TransportEnvelope is adapted by channel implementations.
