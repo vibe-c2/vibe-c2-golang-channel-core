@@ -8,7 +8,7 @@ The repository now includes a compileable v0 scaffold with the primary package b
 
 - `pkg/runtime`: channel runtime orchestrator and core interfaces
 - `pkg/profile`: profile model, YAML parsing helpers, semantic validation
-- `pkg/matcher`: hint-first profile selection stub
+- `pkg/matcher`: hint-first profile selection with deterministic fallback resolution
 - `pkg/syncclient`: HTTP sync client for C2 (`POST /api/channel/sync`)
 - `pkg/mgmtrpc`: management RPC server skeleton (CRUD/activate/validate TODOs)
 - `pkg/errors`: typed error codes and helpers
@@ -22,7 +22,13 @@ Core runtime interfaces:
 Runtime pipeline entrypoint:
 
 - `Handle(ctx, envelope, channelID) (protocol.OutboundAgentMessage, error)`
+- `HandleWithProfile(ctx, envelope, channelID, profile) (protocol.OutboundAgentMessage, error)`
 - Performs basic canonical inbound/outbound validation around sync execution.
+
+Matcher resolution:
+
+- `Resolve(ctx, hintProfileID, candidates) (Resolution, error)`
+- Returns match metadata (`hint` or `fallback`) and typed errors for ambiguous/not-found outcomes.
 
 ## Quick Start
 
