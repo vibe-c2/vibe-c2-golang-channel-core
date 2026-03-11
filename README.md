@@ -9,8 +9,11 @@ The repository now includes a compileable v0 scaffold with the primary package b
 - `pkg/runtime`: channel runtime orchestrator and core interfaces
 - `pkg/profile`: profile model, YAML parsing helpers, semantic validation
 - `pkg/matcher`: hint-first profile selection with deterministic fallback resolution
+- `pkg/transform`: reusable transform pipeline (`base64`, `base64url`)
+- `pkg/resolver`: first-class location resolver helper (`body/header/query/cookie` refs)
+- `pkg/cache`: source affinity cache utility (TTL)
 - `pkg/syncclient`: HTTP sync client for C2 (`POST /api/channel/sync`)
-- `pkg/mgmtrpc`: management RPC server skeleton (CRUD/activate/validate TODOs)
+- `pkg/mgmtrpc`: management RPC handlers for profile CRUD/activate/validate
 - `pkg/errors`: typed error codes and helpers
 
 Core runtime interfaces:

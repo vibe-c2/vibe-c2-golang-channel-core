@@ -37,7 +37,9 @@ func ValidateMany(profiles []Profile) error {
 // ValidateSet validates constraints across all profiles in one channel set.
 func ValidateSet(profiles []Profile) error {
 	enabledFallbacks := 0
-	seen := map[string]string{}
+	hintSeen := map[string]string{}
+	shapeSeen := map[string]string{}
+	enabledNoHint := 0
 
 	for _, p := range profiles {
 		if !p.Enabled {
@@ -47,19 +49,28 @@ func ValidateSet(profiles []Profile) error {
 			enabledFallbacks++
 		}
 
-		// Baseline overlap detection: reject duplicate enabled hint keys.
-		hint := strings.TrimSpace(p.Mapping.ProfileID)
-		if hint == "" {
-			continue
+		hint := strings.ToLower(strings.TrimSpace(p.Mapping.ProfileID))
+		if hint != "" {
+			if prev, ok := hintSeen[hint]; ok {
+				return coreerrors.New(coreerrors.CodeProfileAmbiguous, "overlapping enabled mapping.profile_id between "+prev+" and "+p.ProfileID)
+			}
+			hintSeen[hint] = p.ProfileID
+		} else if !p.DefaultFallback {
+			enabledNoHint++
 		}
-		if prev, ok := seen[hint]; ok {
-			return coreerrors.New(coreerrors.CodeProfileAmbiguous, "overlapping enabled mapping.profile_id between "+prev+" and "+p.ProfileID)
+
+		shape := strings.ToLower(strings.TrimSpace(p.Mapping.ID)) + "|" + strings.ToLower(strings.TrimSpace(p.Mapping.EncryptedData))
+		if prev, ok := shapeSeen[shape]; ok {
+			return coreerrors.New(coreerrors.CodeProfileAmbiguous, "overlapping enabled mapping shape between "+prev+" and "+p.ProfileID)
 		}
-		seen[hint] = p.ProfileID
+		shapeSeen[shape] = p.ProfileID
 	}
 
 	if enabledFallbacks != 1 {
 		return coreerrors.New(coreerrors.CodeProfileInvalid, "exactly one enabled default_fallback profile is required")
+	}
+	if enabledNoHint > 0 {
+		return coreerrors.New(coreerrors.CodeProfileAmbiguous, "enabled non-fallback profiles require mapping.profile_id hint")
 	}
 	return nil
 }
