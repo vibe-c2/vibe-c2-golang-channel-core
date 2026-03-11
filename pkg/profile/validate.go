@@ -33,3 +33,33 @@ func ValidateMany(profiles []Profile) error {
 	}
 	return nil
 }
+
+// ValidateSet validates constraints across all profiles in one channel set.
+func ValidateSet(profiles []Profile) error {
+	enabledFallbacks := 0
+	seen := map[string]string{}
+
+	for _, p := range profiles {
+		if !p.Enabled {
+			continue
+		}
+		if p.DefaultFallback {
+			enabledFallbacks++
+		}
+
+		// Baseline overlap detection: reject duplicate enabled hint keys.
+		hint := strings.TrimSpace(p.Mapping.ProfileID)
+		if hint == "" {
+			continue
+		}
+		if prev, ok := seen[hint]; ok {
+			return coreerrors.New(coreerrors.CodeProfileAmbiguous, "overlapping enabled mapping.profile_id between "+prev+" and "+p.ProfileID)
+		}
+		seen[hint] = p.ProfileID
+	}
+
+	if enabledFallbacks != 1 {
+		return coreerrors.New(coreerrors.CodeProfileInvalid, "exactly one enabled default_fallback profile is required")
+	}
+	return nil
+}
