@@ -125,9 +125,10 @@ func TestRuntimeHandleWithProfileSuccess(t *testing.T) {
 		ChannelType: "http",
 		Enabled:     true,
 		Mapping: profile.Mapping{
-			ProfileID:     "profile",
-			ID:            "msg_id",
-			EncryptedData: "payload",
+			ProfileID:        &profile.MapField{Target: profile.Target{Location: "mapping", Key: "profile"}},
+			ID:               profile.MapField{Target: profile.Target{Location: "mapping", Key: "msg_id"}},
+			EncryptedDataIn:  profile.MapField{Target: profile.Target{Location: "mapping", Key: "payload"}},
+			EncryptedDataOut: profile.MapField{Target: profile.Target{Location: "mapping", Key: "payload"}},
 		},
 	}
 	sync := &testSyncClient{outbound: protocol.OutboundAgentMessage{
@@ -171,8 +172,9 @@ func TestRuntimeHandleWithProfileInvalidProfile(t *testing.T) {
 		ProfileID: "alpha",
 		// ChannelType intentionally missing.
 		Mapping: profile.Mapping{
-			ID:            "id",
-			EncryptedData: "encrypted_data",
+			ID:               profile.MapField{Target: profile.Target{Location: "mapping", Key: "id"}},
+			EncryptedDataIn:  profile.MapField{Target: profile.Target{Location: "mapping", Key: "encrypted_data"}},
+			EncryptedDataOut: profile.MapField{Target: profile.Target{Location: "mapping", Key: "encrypted_data"}},
 		},
 	}
 	r := New(&testSyncClient{})

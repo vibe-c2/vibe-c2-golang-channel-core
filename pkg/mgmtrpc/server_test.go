@@ -47,7 +47,7 @@ func (m *memStore) Delete(_ context.Context, channelID, profileID string) error 
 func TestCreateAndValidate(t *testing.T) {
 	s := NewServer(newMemStore())
 	ctx := context.Background()
-	p := profile.Profile{ProfileID: "fallback", ChannelType: "http", Enabled: true, DefaultFallback: true, Mapping: profile.Mapping{ID: "body:id", EncryptedData: "body:data"}}
+	p := profile.Profile{ProfileID: "p1", ChannelType: "http", Enabled: true, Mapping: profile.Mapping{ID: profile.MapField{Target: profile.Target{Location: "body", Key: "id"}}, EncryptedDataIn: profile.MapField{Target: profile.Target{Location: "body", Key: "data_in"}}, EncryptedDataOut: profile.MapField{Target: profile.Target{Location: "body", Key: "data_out"}}}}
 	if err := s.CreateProfile(ctx, "c1", p); err != nil {
 		t.Fatal(err)
 	}

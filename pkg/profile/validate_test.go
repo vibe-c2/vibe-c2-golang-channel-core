@@ -2,11 +2,10 @@ package profile
 
 import "testing"
 
-func TestValidateSetRequiresSingleFallback(t *testing.T) {
-	profiles := []Profile{
-		{ProfileID: "a", ChannelType: "http", Enabled: true, DefaultFallback: true, Mapping: Mapping{ID: "id", EncryptedData: "data"}},
-		{ProfileID: "b", ChannelType: "http", Enabled: true, DefaultFallback: true, Mapping: Mapping{ID: "id", EncryptedData: "data"}},
-	}
+func mf(loc, key string) MapField { return MapField{Target: Target{Location: loc, Key: key}} }
+
+func TestValidateSetRequiresEnabled(t *testing.T) {
+	profiles := []Profile{{ProfileID: "a", ChannelType: "http", Enabled: false, Mapping: Mapping{ID: mf("body", "id"), EncryptedDataIn: mf("body", "in"), EncryptedDataOut: mf("body", "out")}}}
 	if err := ValidateSet(profiles); err == nil {
 		t.Fatal("expected validation error")
 	}
@@ -14,20 +13,10 @@ func TestValidateSetRequiresSingleFallback(t *testing.T) {
 
 func TestValidateSetOverlapDetection(t *testing.T) {
 	profiles := []Profile{
-		{ProfileID: "a", ChannelType: "http", Enabled: true, DefaultFallback: true, Mapping: Mapping{ProfileID: "hint", ID: "body:id", EncryptedData: "body:data"}},
-		{ProfileID: "b", ChannelType: "http", Enabled: true, DefaultFallback: false, Mapping: Mapping{ProfileID: "hint", ID: "body:id2", EncryptedData: "body:data2"}},
+		{ProfileID: "a", ChannelType: "http", Enabled: true, Mapping: Mapping{ProfileID: &MapField{Target: Target{Location: "body", Key: "hint"}}, ID: mf("body", "id"), EncryptedDataIn: mf("body", "in"), EncryptedDataOut: mf("body", "out")}},
+		{ProfileID: "b", ChannelType: "http", Enabled: true, Mapping: Mapping{ProfileID: &MapField{Target: Target{Location: "body", Key: "hint"}}, ID: mf("body", "id2"), EncryptedDataIn: mf("body", "in2"), EncryptedDataOut: mf("body", "out2")}},
 	}
 	if err := ValidateSet(profiles); err == nil {
 		t.Fatal("expected overlap error")
-	}
-}
-
-func TestValidateSetNoHintNonFallback(t *testing.T) {
-	profiles := []Profile{
-		{ProfileID: "f", ChannelType: "http", Enabled: true, DefaultFallback: true, Mapping: Mapping{ID: "body:id", EncryptedData: "body:data"}},
-		{ProfileID: "a", ChannelType: "http", Enabled: true, DefaultFallback: false, Mapping: Mapping{ID: "body:id2", EncryptedData: "body:data2"}},
-	}
-	if err := ValidateSet(profiles); err == nil {
-		t.Fatal("expected no-hint ambiguity error")
 	}
 }

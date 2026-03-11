@@ -2,98 +2,69 @@ package matcher
 
 import (
 	"context"
+	"sort"
 	"strings"
 
 	coreerrors "github.com/vibe-c2/vibe-c2-golang-channel-core/pkg/errors"
 	"github.com/vibe-c2/vibe-c2-golang-channel-core/pkg/profile"
 )
 
-// Matcher contains profile selection helpers.
 type Matcher struct{}
 
-func New() *Matcher {
-	return &Matcher{}
-}
+func New() *Matcher { return &Matcher{} }
 
-// MatchSource describes where a profile resolution came from.
 type MatchSource string
 
 const (
-	MatchSourceHint     MatchSource = "hint"
-	MatchSourceFallback MatchSource = "fallback"
-	MatchSourceNone     MatchSource = "none"
+	MatchSourceHint       MatchSource = "hint"
+	MatchSourceBruteforce MatchSource = "bruteforce"
+	MatchSourceNone       MatchSource = "none"
 )
 
-// Resolution captures the selected profile and selection source.
 type Resolution struct {
 	Profile profile.Profile
 	Source  MatchSource
 }
 
-// Resolve selects a profile from candidates using deterministic hint-first logic.
+// Resolve resolves only by explicit hint. Brute-force candidate iteration is done by channel module.
 func (m *Matcher) Resolve(_ context.Context, hintProfileID string, candidates []profile.Profile) (Resolution, error) {
 	hintProfileID = strings.TrimSpace(hintProfileID)
-	if hintProfileID != "" {
-		hits := make([]profile.Profile, 0, 1)
-		for _, p := range candidates {
-			if !p.Enabled {
-				continue
-			}
-			if p.ProfileID == hintProfileID || p.Mapping.ProfileID == hintProfileID {
-				hits = append(hits, p)
-			}
-		}
-		switch len(hits) {
-		case 1:
-			return Resolution{Profile: hits[0], Source: MatchSourceHint}, nil
-		case 0:
-			// Continue to fallback resolution.
-		default:
-			return Resolution{Source: MatchSourceNone}, coreerrors.New(coreerrors.CodeProfileAmbiguous, "hint matches multiple enabled profiles")
-		}
+	if hintProfileID == "" {
+		return Resolution{Source: MatchSourceNone}, coreerrors.New(coreerrors.CodeProfileNotFound, "no hint provided")
 	}
 
-	selected, found := selectFallback(candidates)
-	if !found {
-		return Resolution{Source: MatchSourceNone}, coreerrors.New(coreerrors.CodeProfileNotFound, "no enabled fallback profile found")
-	}
-	return Resolution{Profile: selected, Source: MatchSourceFallback}, nil
-}
-
-// SelectHintFirst performs hint-first selection and falls back to the
-// highest-priority enabled default profile.
-func (m *Matcher) SelectHintFirst(ctx context.Context, _ string, hintProfileID string, candidates []profile.Profile) (profile.Profile, bool, error) {
-	resolution, err := m.Resolve(ctx, hintProfileID, candidates)
-	if err != nil {
-		if coreerrors.Code(err) == coreerrors.CodeProfileNotFound {
-			return profile.Profile{}, false, nil
-		}
-		return profile.Profile{}, false, err
-	}
-	return resolution.Profile, true, nil
-}
-
-func selectFallback(candidates []profile.Profile) (profile.Profile, bool) {
-	var selected profile.Profile
-	found := false
+	hits := make([]profile.Profile, 0, 1)
 	for _, p := range candidates {
-		if !p.Enabled || !p.DefaultFallback {
+		if !p.Enabled {
 			continue
 		}
-		if !found || betterFallback(p, selected) {
-			selected = p
-			found = true
+		if p.ProfileID == hintProfileID {
+			hits = append(hits, p)
 		}
 	}
-	return selected, found
+	switch len(hits) {
+	case 1:
+		return Resolution{Profile: hits[0], Source: MatchSourceHint}, nil
+	case 0:
+		return Resolution{Source: MatchSourceNone}, coreerrors.New(coreerrors.CodeProfileNotFound, "hint did not match enabled profiles")
+	default:
+		return Resolution{Source: MatchSourceNone}, coreerrors.New(coreerrors.CodeProfileAmbiguous, "hint matches multiple enabled profiles")
+	}
 }
 
-func betterFallback(candidate, current profile.Profile) bool {
-	if candidate.Priority != current.Priority {
-		return candidate.Priority > current.Priority
+// EnabledOrdered returns enabled profiles ordered by priority desc, profile_id asc.
+func (m *Matcher) EnabledOrdered(candidates []profile.Profile) []profile.Profile {
+	out := make([]profile.Profile, 0, len(candidates))
+	for _, p := range candidates {
+		if p.Enabled {
+			out = append(out, p)
+		}
 	}
-	if candidate.ProfileID != current.ProfileID {
-		return candidate.ProfileID < current.ProfileID
-	}
-	return candidate.Mapping.ProfileID < current.Mapping.ProfileID
+	sort.Slice(out, func(i, j int) bool {
+		if out[i].Priority != out[j].Priority {
+			return out[i].Priority > out[j].Priority
+		}
+		return out[i].ProfileID < out[j].ProfileID
+	})
+	return out
 }

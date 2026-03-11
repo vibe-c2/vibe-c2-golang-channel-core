@@ -70,11 +70,11 @@ func (r *Runtime) HandleWithProfile(ctx context.Context, envelope TransportEnvel
 		return protocol.OutboundAgentMessage{}, coreerrors.Wrap(coreerrors.CodeProfileInvalid, "invalid profile", err)
 	}
 
-	id, err := requiredEnvelopeField(envelope, "mapping", p.Mapping.ID)
+	id, err := requiredEnvelopeField(envelope, "mapping", profileFieldKey(p.Mapping.ID))
 	if err != nil {
 		return protocol.OutboundAgentMessage{}, err
 	}
-	encryptedData, err := requiredEnvelopeField(envelope, "mapping", p.Mapping.EncryptedData)
+	encryptedData, err := requiredEnvelopeField(envelope, "mapping", profileFieldKey(p.Mapping.EncryptedDataIn))
 	if err != nil {
 		return protocol.OutboundAgentMessage{}, err
 	}
@@ -106,8 +106,8 @@ func (r *Runtime) HandleWithProfile(ctx context.Context, envelope TransportEnvel
 		return protocol.OutboundAgentMessage{}, coreerrors.Wrap(coreerrors.CodeCanonicalInvalid, "invalid outbound canonical message", err)
 	}
 
-	envelope.SetField("mapping", p.Mapping.ID, outbound.ID)
-	envelope.SetField("mapping", p.Mapping.EncryptedData, outbound.EncryptedData)
+	envelope.SetField("mapping", profileFieldKey(p.Mapping.ID), outbound.ID)
+	envelope.SetField("mapping", profileFieldKey(p.Mapping.EncryptedDataOut), outbound.EncryptedData)
 
 	return outbound, nil
 }
@@ -144,4 +144,11 @@ func requiredEnvelopeField(envelope TransportEnvelope, location, key string) (st
 		return "", coreerrors.New(coreerrors.CodeInvalidInput, "missing required field: "+location+"."+key)
 	}
 	return strings.TrimSpace(value), nil
+}
+
+func profileFieldKey(f profile.MapField) string {
+	if k := strings.TrimSpace(f.Target.Key); k != "" {
+		return k
+	}
+	return strings.TrimSpace(f.Ref())
 }
