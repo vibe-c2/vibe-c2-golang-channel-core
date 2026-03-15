@@ -147,8 +147,5 @@ func requiredEnvelopeField(envelope TransportEnvelope, location, key string) (st
 }
 
 func profileFieldKey(f profile.MapField) string {
-	if k := strings.TrimSpace(f.Target.Key); k != "" {
-		return k
-	}
-	return strings.TrimSpace(f.Ref())
+	return strings.TrimSpace(f.Target.Key)
 }
