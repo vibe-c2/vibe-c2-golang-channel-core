@@ -15,14 +15,22 @@ func Validate(p Profile) error {
 	if strings.TrimSpace(p.ChannelType) == "" {
 		return coreerrors.New(coreerrors.CodeProfileInvalid, "channel_type is required")
 	}
-	if strings.TrimSpace(p.Mapping.ID.Ref()) == "" {
-		return coreerrors.New(coreerrors.CodeProfileInvalid, "mapping.id target is required")
+	if p.Mapping.CombinedIn == nil {
+		if strings.TrimSpace(p.Mapping.ID.Ref()) == "" {
+			return coreerrors.New(coreerrors.CodeProfileInvalid, "mapping.id target is required (or use mapping.combined_in)")
+		}
+		if strings.TrimSpace(p.Mapping.EncryptedDataIn.Ref()) == "" {
+			return coreerrors.New(coreerrors.CodeProfileInvalid, "mapping.encrypted_data_in target is required (or use mapping.combined_in)")
+		}
+	} else if strings.TrimSpace(p.Mapping.CombinedIn.Ref()) == "" {
+		return coreerrors.New(coreerrors.CodeProfileInvalid, "mapping.combined_in target is required")
 	}
-	if strings.TrimSpace(p.Mapping.EncryptedDataIn.Ref()) == "" {
-		return coreerrors.New(coreerrors.CodeProfileInvalid, "mapping.encrypted_data_in target is required")
-	}
-	if strings.TrimSpace(p.Mapping.EncryptedDataOut.Ref()) == "" {
-		return coreerrors.New(coreerrors.CodeProfileInvalid, "mapping.encrypted_data_out target is required")
+	if p.Mapping.CombinedOut == nil {
+		if strings.TrimSpace(p.Mapping.EncryptedDataOut.Ref()) == "" {
+			return coreerrors.New(coreerrors.CodeProfileInvalid, "mapping.encrypted_data_out target is required (or use mapping.combined_out)")
+		}
+	} else if strings.TrimSpace(p.Mapping.CombinedOut.Ref()) == "" {
+		return coreerrors.New(coreerrors.CodeProfileInvalid, "mapping.combined_out target is required")
 	}
 	return nil
 }
@@ -59,6 +67,9 @@ func ValidateSet(profiles []Profile) error {
 		}
 
 		shape := strings.ToLower(strings.TrimSpace(p.Mapping.ID.Ref())) + "|" + strings.ToLower(strings.TrimSpace(p.Mapping.EncryptedDataIn.Ref()))
+		if p.Mapping.CombinedIn != nil {
+			shape = "combined:" + strings.ToLower(strings.TrimSpace(p.Mapping.CombinedIn.Ref()))
+		}
 		if prev, ok := shapeSeen[shape]; ok {
 			return coreerrors.New(coreerrors.CodeProfileAmbiguous, "overlapping enabled mapping shape between "+prev+" and "+p.ProfileID)
 		}
