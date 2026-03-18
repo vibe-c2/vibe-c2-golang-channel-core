@@ -62,6 +62,51 @@ func TestCreateAndValidate(t *testing.T) {
 	}
 }
 
+func TestDeactivateProfile(t *testing.T) {
+	store := newMemStore()
+	s := NewServer(store)
+	ctx := context.Background()
+	p1 := profile.Profile{
+		ProfileID: 1, Enabled: true, Action: profile.Action{Type: "sync"},
+		Mapping: profile.Mapping{
+			ID: profile.MapField{Target: profile.Target{Location: "body", Key: "id"}},
+			EncryptedDataIn: profile.MapField{Target: profile.Target{Location: "body", Key: "in"}},
+			EncryptedDataOut: profile.MapField{Target: profile.Target{Location: "body", Key: "out"}},
+		},
+	}
+	p2 := profile.Profile{
+		ProfileID: 2, Enabled: true, Action: profile.Action{Type: "sync"},
+		Mapping: profile.Mapping{
+			ID: profile.MapField{Target: profile.Target{Location: "body", Key: "id2"}},
+			EncryptedDataIn: profile.MapField{Target: profile.Target{Location: "body", Key: "in2"}},
+			EncryptedDataOut: profile.MapField{Target: profile.Target{Location: "body", Key: "out2"}},
+		},
+	}
+	if err := s.CreateProfile(ctx, "c1", p1); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.CreateProfile(ctx, "c1", p2); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.DeactivateProfile(ctx, "c1", 1); err != nil {
+		t.Fatal(err)
+	}
+	got, err := s.ReadProfile(ctx, "c1", 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Enabled {
+		t.Fatal("expected profile 1 to be disabled")
+	}
+}
+
+func TestDeactivateNotFound(t *testing.T) {
+	s := NewServer(newMemStore())
+	if err := s.DeactivateProfile(context.Background(), "c1", 999); err == nil {
+		t.Fatal("expected error")
+	}
+}
+
 func TestActivateNotFound(t *testing.T) {
 	s := NewServer(newMemStore())
 	if err := s.ActivateProfile(context.Background(), "c1", 999); err == nil {

@@ -101,6 +101,30 @@ func (s *Server) ActivateProfile(ctx context.Context, channelID string, profileI
 	return s.ValidateAllProfiles(ctx, channelID)
 }
 
+func (s *Server) DeactivateProfile(ctx context.Context, channelID string, profileID int32) error {
+	if err := s.ensureStore(); err != nil {
+		return err
+	}
+	profiles, err := s.Store.List(ctx, channelID)
+	if err != nil {
+		return coreerrors.Wrap(coreerrors.CodeInternal, "store list profiles", err)
+	}
+	found := false
+	for i := range profiles {
+		if profiles[i].ProfileID == profileID {
+			profiles[i].Enabled = false
+			found = true
+		}
+		if err := s.Store.Put(ctx, channelID, profiles[i]); err != nil {
+			return coreerrors.Wrap(coreerrors.CodeInternal, "store deactivate profile", err)
+		}
+	}
+	if !found {
+		return coreerrors.New(coreerrors.CodeProfileNotFound, "profile not found")
+	}
+	return s.ValidateAllProfiles(ctx, channelID)
+}
+
 func (s *Server) ListProfiles(ctx context.Context, channelID string) ([]profile.Profile, error) {
 	if err := s.ensureStore(); err != nil {
 		return nil, err
