@@ -3,8 +3,11 @@ module github.com/vibe-c2/vibe-c2-golang-channel-core
 go 1.25.7
 
 require (
-	github.com/vibe-c2/vibe-c2-golang-protocol v0.1.0
+	github.com/vibe-c2/vibe-c2-golang-protocol v0.2.1
 	gopkg.in/yaml.v3 v3.0.1
 )
 
-require github.com/rabbitmq/amqp091-go v1.10.0 // indirect
+require (
+	github.com/oklog/ulid/v2 v2.1.1 // indirect
+	github.com/rabbitmq/amqp091-go v1.10.0
+)
